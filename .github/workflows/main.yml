@@ -1,0 +1,169 @@
+name: Build IL-76 BSKD IM1 APK
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      GRADLE_OPTS: "-Xmx2048m"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate Android Project
+        run: |
+          mkdir -p app/src/main/assets app/src/main/java/ua/il76/bskd app/src/main/res/values app/src/main/res/drawable
+          cp "$(ls *.html | head -n 1)" app/src/main/assets/index.html
+
+          cat << 'EOF' > settings.gradle.kts
+          pluginManagement {
+              repositories { google(); mavenCentral(); gradlePluginPortal() }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories { google(); mavenCentral() }
+          }
+          rootProject.name = "IL76_BSKD_IM1"
+          include(":app")
+          EOF
+
+          cat << 'EOF' > build.gradle.kts
+          plugins {
+              id("com.android.application") version "8.7.2" apply false
+              id("org.jetbrains.kotlin.android") version "2.0.21" apply false
+          }
+          EOF
+
+          cat << 'EOF' > app/build.gradle.kts
+          plugins {
+              id("com.android.application")
+              id("org.jetbrains.kotlin.android")
+          }
+          android {
+              namespace = "ua.il76.bskd"
+              compileSdk = 35
+              defaultConfig {
+                  applicationId = "ua.il76.bskd"
+                  minSdk = 24
+                  targetSdk = 35
+                  versionCode = 100
+                  versionName = "1.0"
+              }
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+              kotlinOptions { jvmTarget = "17" }
+          }
+          EOF
+
+          cat << 'EOF' > app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <application
+                  android:hardwareAccelerated="true"
+                  android:icon="@drawable/ic_launcher"
+                  android:label="@string/app_name"
+                  android:theme="@style/Theme.IL76BSKD">
+                  <activity
+                      android:name=".MainActivity"
+                      android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          cat << 'EOF' > app/src/main/res/values/strings.xml
+          <resources>
+              <string name="app_name">Іл-76 БСКД / ІМ1</string>
+          </resources>
+          EOF
+
+          cat << 'EOF' > app/src/main/res/values/styles.xml
+          <resources>
+              <style name="Theme.IL76BSKD" parent="android:Theme.Material.NoActionBar">
+                  <item name="android:windowBackground">@android:color/black</item>
+                  <item name="android:statusBarColor">#0d1117</item>
+                  <item name="android:navigationBarColor">#0d1117</item>
+              </style>
+          </resources>
+          EOF
+
+          cat << 'EOF' > app/src/main/res/drawable/ic_launcher.xml
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp" android:height="108dp"
+              android:viewportWidth="108" android:viewportHeight="108">
+              <path android:fillColor="#0d1117" android:pathData="M0,0h108v108h-108z"/>
+              <path android:fillColor="#1e293b" android:pathData="M14,18h80v44h-80z"/>
+              <path android:fillColor="#26bfff" android:pathData="M20,24h68v6h-68z"/>
+              <path android:fillColor="#26f233" android:pathData="M20,36h48v6h-48z"/>
+              <path android:fillColor="#ffe01a" android:pathData="M20,48h58v6h-58z"/>
+              <path android:fillColor="#6e808a" android:pathData="M14,68h80v24h-80z"/>
+              <path android:fillColor="#26f233" android:pathData="M26,75h10v10h-10z"/>
+              <path android:fillColor="#26f233" android:pathData="M49,75h10v10h-10z"/>
+              <path android:fillColor="#26f233" android:pathData="M72,75h10v10h-10z"/>
+          </vector>
+          EOF
+
+          cat << 'EOF' > app/src/main/java/ua/il76/bskd/MainActivity.kt
+          package ua.il76.bskd
+          import android.annotation.SuppressLint
+          import android.app.Activity
+          import android.graphics.Color
+          import android.os.Bundle
+          import android.view.WindowManager
+          import android.webkit.*
+
+          class MainActivity : Activity() {
+              private lateinit var webView: WebView
+              @SuppressLint("SetJavaScriptEnabled")
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+                  window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                  window.statusBarColor = Color.parseColor("#0d1117")
+                  window.navigationBarColor = Color.parseColor("#0d1117")
+                  webView = WebView(this).apply {
+                      setBackgroundColor(Color.parseColor("#0d1117"))
+                      webViewClient = WebViewClient()
+                      webChromeClient = WebChromeClient()
+                      settings.apply {
+                          javaScriptEnabled = true
+                          domStorageEnabled = true
+                          allowFileAccess = true
+                          useWideViewPort = true
+                          loadWithOverviewMode = true
+                          builtInZoomControls = true
+                          displayZoomControls = false
+                      }
+                  }
+                  setContentView(webView)
+                  webView.loadUrl("file:///android_asset/index.html")
+              }
+          }
+          EOF
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build Debug APK
+        run: gradle assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: IL76-BSKD-IM1-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
