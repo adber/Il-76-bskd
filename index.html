@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>КСЭИС-76 (ІМ1) + Щиток БСКД/РЭД — Інтерактивний стенд</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap');
+
+    :root {
+      --bg: #1f2429;
+      --bord: #4d5966;
+      --bar: #2e3840;
+      --barln: #47525c;
+      --title: #40d9ff;
+      --btn: #384552;
+      --btn-on: #26734d;
+      --btn-x: #bf3333;
+      --hdr: #29333d;
+      --row-on: #243d33;
+      --hint: #a6b3bf;
+      --cyan: #26bfff;
+      --red: #f22626;
+      --yellow: #ffe01a;
+      --green: #26f233;
+      --orange: #ffa61a;
+
+      /* Кольори щитка ps90_bskd_panel.lua */
+      --panel-bg: #6e808a;
+      --panel-dark: #4d5c66;
+      --panel-hdr: #0d173d;
+      --panel-line: rgba(219, 230, 235, 0.92);
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #0d1117;
+      color: #f2f2f2;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', 'DejaVu Sans Mono', Consolas, monospace;
+    }
+
+    .sasl-win {
+      background: var(--bg);
+      border: 1px solid var(--bord);
+    }
+
+    .sasl-bar {
+      background: var(--bar);
+      border-bottom: 1.5px solid var(--barln);
+    }
+
+    .sasl-btn {
+      background: var(--btn);
+      border: 1px solid var(--barln);
+      color: #f2f2f2;
+      transition: background-color 0.12s ease, transform 0.08s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .sasl-btn:active {
+      transform: scale(0.98);
+    }
+    .sasl-btn.active {
+      background: var(--btn-on);
+      border-color: #3da370;
+    }
+
+    .im1-screen {
+      background: #000000;
+      border: 1.5px solid var(--cyan);
+    }
+
+    .im1-row {
+      border: 1px solid transparent;
+      border-radius: 2px;
+    }
+    .im1-row.flash-cyan { border-color: var(--cyan); }
+    .im1-row.flash-red  { border-color: var(--red); }
+
+    .cat-list {
+      background: #000000;
+      border: 1px solid var(--bord);
+      -webkit-overflow-scrolling: touch;
+    }
+    .cat-hdr {
+      background: var(--hdr);
+      color: var(--cyan);
+    }
+    .cat-item {
+      border-bottom: 1px solid #14191f;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .cat-item.on { background: var(--row-on); }
+
+    .cat-list::-webkit-scrollbar { width: 10px; }
+    .cat-list::-webkit-scrollbar-track { background: #141a1f; }
+    .cat-list::-webkit-scrollbar-thumb { background: #388cb8; border-radius: 2px; }
+
+    /* Стилі щитка БСКД/РЭД */
+    .bskd-plate {
+      background: var(--panel-bg);
+      border: 2px solid #1a1f24;
+      position: relative;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .bskd-side-rails {
+      position: relative;
+      border-left: 2px solid var(--panel-line);
+      border-right: 2px solid var(--panel-line);
+    }
+
+    .bracket-title {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+    .bracket-title::before,
+    .bracket-title::after {
+      content: "";
+      flex: 1;
+      height: 10px;
+      border-top: 2px solid var(--panel-line);
+      margin-top: 8px;
+    }
+    .bracket-title::before {
+      border-left: 2px solid var(--panel-line);
+    }
+    .bracket-title::after {
+      border-right: 2px solid var(--panel-line);
+    }
+
+    .toggle-btn {
+      position: relative;
+      width: 44px;
+      height: 46px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .toggle-base {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #c5ccd1, #8a949c 65%, #3a4147 100%);
+      border: 2px solid #1a1f24;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 1px 2px rgba(255,255,255,0.45), 0 2px 3px rgba(0,0,0,0.45);
+    }
+    .toggle-inner {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #6b1f1f;
+      border: 1px solid #2b0c0c;
+    }
+    .toggle-lever {
+      position: absolute;
+      width: 7px;
+      height: 20px;
+      border-radius: 4px;
+      background: linear-gradient(90deg, #eff3f5, #b4bec4 65%, #6d767d);
+      border: 1px solid #2b3238;
+      box-shadow: 2px 2px 3px rgba(0,0,0,0.5);
+      left: 50%;
+      transform: translateX(-50%);
+      transition: top 0.1s ease;
+    }
+    .toggle-btn.is-on .toggle-lever { top: 3px; }
+    .toggle-btn:not(.is-on) .toggle-lever { top: 23px; }
+
+    .toggle3-btn {
+      position: relative;
+      width: 46px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .toggle3-base {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #d6dce0, #8f989e);
+      border: 2px solid #1a1f24;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 3px rgba(0,0,0,0.45);
+    }
+    .toggle3-inner {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #9ea8b0;
+      border: 1px solid #454e54;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .toggle3-center-tip {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #ffffff, #cbd2d6 55%, #6d767d 100%);
+      border: 1px solid #4d565c;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.45);
+    }
+    .toggle3-lever {
+      position: absolute;
+      width: 7px;
+      height: 19px;
+      border-radius: 4px;
+      background: linear-gradient(90deg, #eff3f5, #b4bec4 65%, #6d767d);
+      border: 1px solid #2b3238;
+      box-shadow: 2px 2px 3px rgba(0,0,0,0.5);
+      left: 50%;
+      transform: translateX(-50%);
+      display: none;
+    }
+    .toggle3-btn.pos-up .toggle3-center-tip,
+    .toggle3-btn.pos-dn .toggle3-center-tip { display: none; }
+    .toggle3-btn.pos-up .toggle3-lever { display: block; top: 3px; }
+    .toggle3-btn.pos-dn .toggle3-lever { display: block; top: 28px; }
+
+    .lid-latch {
+      width: 50px;
+      height: 14px;
+      background: #4d5c66;
+      border: 1.5px solid #1a1f24;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 3px;
+    }
+    .lid-latch-bolt {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #6e808a;
+      border: 1px solid #1a1f24;
+    }
+    .lid-latch-core {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 20px;
+      height: 16px;
+      background: #262e36;
+      border: 1.5px solid #b8c0c7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .lid-latch-core::after {
+      content: "";
+      width: 14px;
+      height: 2px;
+      background: #737d85;
+    }
+
+    .lamp-dot {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid #1a1f24;
+      background: radial-gradient(circle at 35% 35%, #296b57, #0a3d2e 70%);
+      transition: box-shadow 0.15s ease, background 0.15s ease;
+    }
+    .lamp-dot.lit {
+      background: radial-gradient(circle at 35% 35%, #c7ffd9, #1ff261 55%, #0ea83d 100%);
+      box-shadow: 0 0 12px rgba(31, 242, 97, 0.85);
+    }
+
+    .ann-box {
+      border: 2px solid #1a1f24;
+      background: #421924;
+      color: #943d47;
+      transition: background 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+    }
+    .ann-box.lit {
+      background: #eb291f;
+      color: #fff5d9;
+      box-shadow: 0 0 14px rgba(235, 41, 31, 0.85);
+    }
+
+    .guard-bar {
+      width: 6px;
+      height: 44px;
+      border-radius: 2px;
+      background: linear-gradient(90deg, #8b949c, #f0f4f7 45%, #7d868e);
+      border: 1px solid #1a1f24;
+    }
+
+    .bskd-lid-zone {
+      position: relative;
+    }
+    .bskd-lid {
+      position: absolute;
+      inset: -4px -10px -6px -10px;
+      z-index: 25;
+      border-radius: 26px 4px 4px 26px;
+      background: linear-gradient(180deg, #8fa2ad 0%, #6f818c 4%, #6a7c87 95%, #37434a 100%);
+      box-shadow:
+        inset 6px 0 12px rgba(20, 28, 34, 0.55),
+        inset 0 4px 8px rgba(220, 235, 242, 0.35),
+        inset 0 -8px 12px rgba(15, 20, 25, 0.65),
+        -3px 6px 14px rgba(0, 0, 0, 0.65);
+      border: 1.5px solid #283238;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transform-origin: right center;
+      transition: opacity 0.22s ease, transform 0.26s ease;
+    }
+    .bskd-lid.is-open {
+      opacity: 0;
+      transform: perspective(700px) rotateY(72deg);
+      pointer-events: none;
+    }
+    .bskd-lid-hinge {
+      position: absolute;
+      top: 10px;
+      bottom: 10px;
+      right: 0;
+      width: 10px;
+      border-left: 1px solid rgba(25, 33, 38, 0.55);
+      background: repeating-linear-gradient(
+        180deg,
+        rgba(125, 142, 152, 0.6) 0px,
+        rgba(125, 142, 152, 0.6) 14px,
+        rgba(45, 55, 62, 0.7) 14px,
+        rgba(45, 55, 62, 0.7) 16px
+      );
+    }
+    .bskd-lid-knob {
+      position: absolute;
+      left: 14%;
+      top: 47%;
+      transform: translateY(-50%);
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 32% 30%, #a9bac4 0%, #748792 52%, #39454d 100%);
+      box-shadow: 0 5px 8px rgba(0, 0, 0, 0.55), inset 0 1px 3px rgba(255, 255, 255, 0.35);
+      border: 1px solid rgba(30, 38, 44, 0.6);
+    }
+    .bskd-lid-text {
+      color: #dbe3e8;
+      font-weight: 700;
+      font-size: 16px;
+      line-height: 1.3;
+      letter-spacing: 0.04em;
+      text-align: center;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+      padding-left: 28px;
+    }
+    .lid-latch-btn {
+      cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+    .lid-latch-btn:active {
+      transform: scale(0.95);
+    }
+  </style>
+</head>
+<body class="min-h-screen p-2 sm:p-4 flex flex-col items-center gap-3">
+
+  <!-- Верхня панель керування стендом -->
+  <div class="w-full max-w-7xl flex flex-wrap items-center justify-between gap-2 px-0.5">
+    <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-700 rounded-md p-1">
+      <button id="tab-gallery" type="button" class="px-3 py-1.5 rounded text-xs font-semibold transition bg-cyan-700 text-white">
+        Галерея ІМ1
+      </button>
+      <button id="tab-bskd" type="button" class="px-3 py-1.5 rounded text-xs font-semibold transition text-slate-300 hover:bg-slate-800">
+        Щиток БСКД / РЭД
+      </button>
+      <button id="tab-both" type="button" class="hidden lg:inline-block px-3 py-1.5 rounded text-xs font-semibold transition text-slate-300 hover:bg-slate-800">
+        Разом
+      </button>
+    </div>
+
+    <!-- Умови симулятора для зв'язки скриптів -->
+    <div class="flex flex-wrap items-center gap-1.5 text-xs">
+      <button id="btn-sim-dc" type="button" class="px-2.5 py-1.5 rounded border font-mono font-semibold bg-emerald-950/80 border-emerald-600 text-emerald-300">
+        DC 27В: ВКЛ
+      </button>
+      <button id="btn-sim-eng" type="button" class="px-2.5 py-1.5 rounded border font-mono font-semibold bg-slate-800 border-slate-600 text-slate-200">
+        ДВ: ЗУПИНЕНІ (N2=0%)
+      </button>
+      <button id="btn-reopen" type="button" class="hidden px-2.5 py-1.5 rounded bg-cyan-700 hover:bg-cyan-600 text-white font-medium">
+        Відкрити вікна
+      </button>
+      <button id="btn-reset-all" type="button" class="px-2.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200">
+        Скинути
+      </button>
+    </div>
+  </div>
+
+  <!-- ОСНОВНИЙ КОНТЕЙНЕР -->
+  <div id="workspace" class="w-full max-w-7xl flex flex-col lg:flex-row items-start justify-center gap-4">
+
+    <!-- ==================== ВІКНО 1: ГАЛЕРЕЯ ІМ1 ==================== -->
+    <div id="gallery-pane" class="w-full flex-1 min-w-0">
+      <div id="sasl-window" class="sasl-win w-full rounded-md shadow-2xl overflow-hidden">
+        <div class="sasl-bar flex items-center justify-between gap-2 px-3 py-2">
+          <h1 class="mono font-bold text-xs sm:text-sm tracking-tight truncate" style="color: var(--title);">
+            ГАЛЕРЕЯ ТАБЛО КСЭИС-76 (ІМ1) | ПАНЕЛЬ ІНСТРУКТОРА
+          </h1>
+          <button id="btn-close" type="button" aria-label="Закрити вікно"
+            class="shrink-0 w-8 h-7 rounded-sm flex items-center justify-center font-bold text-white text-sm"
+            style="background: var(--btn-x);">✕</button>
+        </div>
+
+        <div class="p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <!-- Ліва колонка галереї -->
+          <div class="lg:col-span-5 flex flex-col gap-3">
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-1.5">
+                <span class="mono text-[11px] sm:text-xs" style="color: var(--hint);">
+                  МАКЕТ ВІКНА ПОВІДОМЛЕНЬ ІМ1 (10 рядків)
+                </span>
+                <div class="flex items-center gap-1.5">
+                  <button id="btn-mock-up" type="button" class="sasl-btn w-9 h-7 sm:w-8 sm:h-6 rounded-sm flex items-center justify-center text-xs font-bold">▲</button>
+                  <button id="btn-mock-dn" type="button" class="sasl-btn w-9 h-7 sm:w-8 sm:h-6 rounded-sm flex items-center justify-center text-xs font-bold">▼</button>
+                </div>
+              </div>
+              <div class="p-1.5 bg-black rounded-sm">
+                <div id="im1-screen" class="im1-screen relative min-h-[210px] sm:min-h-[224px] p-1.5 flex flex-col gap-0.5 mono"></div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2">
+              <button id="btn-ack" type="button" class="sasl-btn py-2.5 sm:py-2 px-2 rounded-sm mono font-bold text-xs">КВІТУВАТИ</button>
+              <button id="btn-clear" type="button" class="sasl-btn py-2.5 sm:py-2 px-2 rounded-sm mono font-bold text-xs">ОЧИСТИТИ</button>
+              <button id="btn-demo" type="button" class="sasl-btn py-2.5 sm:py-2 px-2 rounded-sm mono font-bold text-xs">ДЕМО</button>
+            </div>
+
+            <div class="flex items-center justify-between sm:justify-start gap-2.5">
+              <span class="mono font-bold text-xs sm:text-sm text-white shrink-0">ДВ / АКБ:</span>
+              <div class="grid grid-cols-4 gap-2 flex-1 sm:flex-none sm:w-56">
+                <button type="button" data-eng="1" class="eng-btn sasl-btn py-2 sm:py-1.5 rounded-sm mono font-bold text-sm">1</button>
+                <button type="button" data-eng="2" class="eng-btn sasl-btn py-2 sm:py-1.5 rounded-sm mono font-bold text-sm">2</button>
+                <button type="button" data-eng="3" class="eng-btn sasl-btn py-2 sm:py-1.5 rounded-sm mono font-bold text-sm">3</button>
+                <button type="button" data-eng="4" class="eng-btn sasl-btn py-2 sm:py-1.5 rounded-sm mono font-bold text-sm">4</button>
+              </div>
+            </div>
+
+            <button id="btn-live" type="button" class="sasl-btn w-full py-2.5 px-3 rounded-sm mono font-bold text-xs sm:text-[13px] text-center">
+              РЕЖИМ: МАКЕТ (датарефи не чіпаємо)
+            </button>
+
+            <div class="space-y-1.5 pt-0.5">
+              <div id="live-status" class="mono text-[11px] sm:text-xs break-words" style="color: var(--hint);">
+                Режим МАКЕТ: датарефи не змінюються.
+              </div>
+              <div id="active-count" class="mono font-bold text-xs sm:text-sm text-white">
+                Активних повідомлень: 0
+              </div>
+              <ul class="mono text-[11px] leading-snug space-y-0.5 pt-1" style="color: var(--hint);">
+                <li>• Натисніть рядок каталогу — додати або прибрати табло.</li>
+                <li>• Порядок: пріоритет (П0→П4), потім час появи. Рамка блимає до квітування.</li>
+                <li id="hint-live-count">• 52 із 57 табло підтримують ЖИВО → ІМ1/ІМ2/СЭС.</li>
+                <li>• Щиток БСКД/РЭД напряму пов'язаний з ІМ1 та відмовами РЭД/БСКД/СЗТР.</li>
+                <li>• ІМ1(ДВ) — табло в ЖИВО потребує працюючого двигуна (N2 >= 44–45%).</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Права колонка: Каталог -->
+          <div class="lg:col-span-7 flex flex-col">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+              <span id="cat-counter" class="mono text-[11px] sm:text-xs" style="color: var(--hint);">КАТАЛОГ ТАБЛО</span>
+              <div class="flex items-center gap-1.5">
+                <button id="btn-cat-up" type="button" class="sasl-btn w-9 h-7 sm:w-8 sm:h-6 rounded-sm flex items-center justify-center text-xs font-bold">▲</button>
+                <button id="btn-cat-dn" type="button" class="sasl-btn w-9 h-7 sm:w-8 sm:h-6 rounded-sm flex items-center justify-center text-xs font-bold">▼</button>
+              </div>
+            </div>
+            <div id="cat-list" class="cat-list rounded-sm overflow-y-auto max-h-[55vh] lg:max-h-[540px] mono"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="closed-banner" class="hidden w-full rounded-md border border-slate-700 bg-slate-900/90 py-14 px-4 flex flex-col items-center justify-center gap-3 text-center">
+        <p class="text-sm text-slate-300">Вікно <span class="mono text-cyan-300">MSGGalleryWindow</span> приховано.</p>
+        <button id="btn-reopen-center" type="button" class="px-4 py-2 rounded bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium">
+          Показати галерею знову
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== ВІКНО 2: ЩИТОК БСКД ТА РЭД ==================== -->
+    <div id="bskd-pane" class="hidden w-full max-w-[360px] mx-auto lg:mx-0 shrink-0 flex flex-col gap-2.5">
+
+      <!-- Міні-стрічка ІМ1 над щитком (щоб на телефоні одразу бачити результат контролю!) -->
+      <div id="mini-im1-wrap" class="bg-black border border-cyan-500/80 rounded-sm p-2 mono">
+        <div class="flex items-center justify-between text-[10px] text-cyan-400 mb-1">
+          <span>ІМ1 (ЖИВИЙ ВИХІД ЩИТКА)</span>
+          <button id="btn-mini-ack" type="button" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600">
+            КВІТ
+          </button>
+        </div>
+        <div id="mini-im1-list" class="space-y-0.5 text-[11px] font-bold min-h-[36px]"></div>
+      </div>
+
+      <!-- Плита щитка ps90_bskd_panel.lua -->
+      <div class="bskd-plate rounded-sm shadow-2xl overflow-hidden">
+        <!-- Шапка щитка -->
+        <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 border-b border-slate-600" style="background: var(--panel-hdr);">
+          <span class="font-bold text-xs text-white truncate">Щиток контроля БСКД и РЭД</span>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button id="btn-bskd-all" type="button" class="px-2 py-0.5 rounded-sm text-[10px] font-bold border border-slate-500 text-white">
+              ВЫКЛ
+            </button>
+            <button id="btn-bskd-close" type="button" class="w-6 h-5 rounded-sm text-[11px] font-bold text-white flex items-center justify-center" style="background: #b82e2e;">
+              X
+            </button>
+          </div>
+        </div>
+
+        <!-- Внутрішня частина з білими вертикальними лініями -->
+        <div class="p-2">
+          <div class="bskd-side-rails px-2.5 py-2.5 space-y-3 text-center">
+
+            <!-- Табло КОНТРОЛЬ ВКЛЮЧЕН -->
+            <div class="flex flex-col items-center">
+              <div id="ann-ctrl-on" class="ann-box px-4 py-1 rounded-sm font-bold text-[11px] leading-tight tracking-wide">
+                КОНТРОЛЬ<br/>ВКЛЮЧЕН
+              </div>
+              <div id="test-progress-bar" class="w-32 h-1 mt-1 rounded bg-slate-800/70 overflow-hidden opacity-0 transition-opacity">
+                <div id="test-progress-fill" class="h-full bg-emerald-400" style="width:0%"></div>
+              </div>
+            </div>
+
+            <!-- ЗОНА ПІД КРИШКОЮ (не накриває табло КОНТРОЛЬ ВКЛЮЧЕН зверху та РЭД 1..4 знизу) -->
+            <div class="bskd-lid-zone space-y-3">
+              <!-- Відкидна кришка «В ПОЛЕТЕ НЕ ОТКРЫВАТЬ» -->
+              <button id="bskd-lid" type="button" class="bskd-lid" aria-label="Відкрити кришку щитка">
+                <span class="bskd-lid-hinge"></span>
+                <span class="bskd-lid-knob"></span>
+                <span class="bskd-lid-text">В ПОЛЕТЕ<br/>НЕ ОТКРЫВАТЬ</span>
+              </button>
+
+            <!-- БСКД (контроль — утримання 1.2с) -->
+            <div>
+              <div class="bracket-title text-[11px] font-bold text-white">БСКД</div>
+              <div class="grid grid-cols-4 gap-1 justify-items-center" id="row-bskd-test"></div>
+            </div>
+
+            <!-- РЭД (контроль — утримання 1.5с, N2<10%) -->
+            <div>
+              <div class="bracket-title text-[11px] font-bold text-white">РЭД</div>
+              <div class="grid grid-cols-4 gap-1 justify-items-center" id="row-red-test"></div>
+            </div>
+
+            <!-- Лампи ИСПРАВЕН 1..4 -->
+            <div>
+              <div class="bracket-title text-[11px] font-bold text-white">ИСПРАВЕН</div>
+              <div class="grid grid-cols-4 gap-1 justify-items-center" id="row-lamps-ok"></div>
+            </div>
+
+            <!-- РЭД (ДУБЛ. КАНАЛЫ) -->
+            <div>
+              <div class="bracket-title text-[11px] font-bold text-white">РЭД (ДУБЛ. КАНАЛЫ)</div>
+              <div class="grid grid-cols-4 gap-1 justify-items-center" id="row-red-backup"></div>
+            </div>
+
+            <!-- СЗТР КОНТРОЛЬ 1 (вгору) / КОНТРОЛЬ 2 (вниз) -->
+            <div>
+              <div class="bracket-title text-[11px] font-bold text-white">СЗТР</div>
+              <div class="text-[10px] font-bold mb-0.5 text-white">КОНТРОЛЬ 1</div>
+              <div class="grid grid-cols-4 gap-1 justify-items-center" id="row-sztr-test"></div>
+              <div class="grid grid-cols-4 gap-1 items-center mt-1">
+                <button id="btn-lid-close" type="button" class="lid-latch-btn flex justify-center" title="Закрити кришку щитка">
+                  <div class="lid-latch">
+                    <span class="lid-latch-bolt"></span>
+                    <span class="lid-latch-core"></span>
+                    <span class="lid-latch-bolt"></span>
+                  </div>
+                </button>
+                <div class="col-span-2 text-center text-[10px] font-bold text-white">КОНТРОЛЬ 2</div>
+                <div></div>
+              </div>
+            </div>
+
+            <!-- СЕКЦІЯ 2: ВКЛЮЧЕНИЕ СИСТЕМ -->
+            <div class="pt-1 border-t border-white/20">
+              <div class="text-xs font-bold text-white tracking-wide mb-1">ВКЛЮЧЕНИЕ СИСТЕМ</div>
+              <div class="bracket-title text-[11px] font-bold text-white">БСКД</div>
+              <div class="grid grid-cols-4 gap-1 justify-items-center" id="row-bskd-pwr"></div>
+            </div>
+
+            <div>
+              <div class="bracket-title text-[11px] font-bold text-white">СЗТР</div>
+              <div class="grid grid-cols-4 gap-1 justify-items-center" id="row-sztr-pwr"></div>
+            </div>
+
+            <div>
+              <div class="text-[10px] font-bold text-white leading-tight mb-1">ПРОТИВОПОМПАЖНАЯ<br/>СИСТЕМА</div>
+              <div class="grid grid-cols-4 gap-1 justify-items-center" id="row-surge-btn"></div>
+            </div>
+
+            <!-- СЕКЦІЯ 3: РЕЗЕРВНЫЕ ИНДИКАТОРЫ ДВИГАТЕЛЕЙ -->
+            <div class="pt-1 border-t border-white/20">
+              <div class="text-[11px] font-bold text-white leading-tight mb-1.5">РЕЗЕРВНЫЕ ИНДИКАТОРЫ<br/>ДВИГАТЕЛЕЙ</div>
+              <div class="grid grid-cols-4 gap-1 items-center justify-items-center">
+                <div class="flex flex-col items-center border-t-2 border-r-2 pr-2 pt-1 w-full" style="border-color: var(--panel-line);">
+                  <span class="text-[9px] font-bold text-white leading-none mb-0.5">ОХЛ<br/>РЭО</span>
+                  <div id="slot-cool-reo"></div>
+                  <span class="text-[9px] font-bold text-white leading-none mt-0.5">ОТКЛ.</span>
+                </div>
+                <div class="flex flex-col items-center">
+                  <span class="text-[9px] font-bold text-white mb-0.5">ОБОРОТЫ</span>
+                  <div id="slot-stby-rpm"></div>
+                </div>
+                <div class="flex flex-col items-center">
+                  <span class="text-[9px] font-bold text-white mb-0.5">ТВГ</span>
+                  <div id="slot-stby-tvg"></div>
+                </div>
+                <div></div>
+              </div>
+            </div>
+
+            </div> <!-- /bskd-lid-zone -->
+
+            <!-- СЕКЦІЯ 4: РЭД (основне живлення під скобами — завжди відкрито під кришкою) -->
+            <div class="pt-1 border-t border-white/20">
+              <div class="text-xs font-bold text-white mb-1">РЭД</div>
+              <div class="flex items-center justify-between px-0.5" id="row-red-pwr"></div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <p class="text-[11px] text-slate-400 text-center px-1">
+        Тап по кришці <b class="text-slate-200">«В ПОЛЕТЕ НЕ ОТКРЫВАТЬ»</b> відкриває щиток; тап по замку під СЗТР 1 — закриває назад.
+      </p>
+    </div>
+
+  </div>
+
+  <!-- Симулятор датарефів (спільний для обох скриптів) -->
+  <div class="w-full max-w-7xl rounded-md border border-slate-800 bg-slate-900/80 px-3 py-2.5">
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+      <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+        Спільна шина датарефів (msg_gallery + ps90_bskd_panel)
+      </span>
+      <span id="dref-count" class="text-[11px] mono text-cyan-400">Активних оверрайдів: 0</span>
+    </div>
+    <div id="dref-list" class="text-xs mono text-slate-400 flex flex-wrap gap-1.5 min-h-[22px]">
+      <span>Немає активних записів у датарефи.</span>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const MAX_MSG_LINES = 10;
+      const RED_TEST_DELAY = 1.5;
+      const BSKD_TEST_DELAY = 1.2;
+      const MSG_HOLD_TIME = 4.0;
+
+      const COL = {
+        RED:    { hex: "#f22626", dim: "#731717", isRed: true },
+        YELLOW: { hex: "#ffe01a", dim: "#786910", isRed: false },
+        GREEN:  { hex: "#26f233", dim: "#166e1c", isRed: false },
+        ORANGE: { hex: "#ffa61a", dim: "#784f10", isRed: false },
+      };
+
+      const CATALOG = [
+        { h: "АВАРІЙНІ ТА ПОЖЕЖА  (пріоритет 0, червоний)" },
+        { id: "FIRE_ENG",    prio: 0, tpl: "ДВ%d. ПОЖАР В ГОНДОЛЕ",        col: COL.RED,    flash: true,  eng: true },
+        { id: "FIRE_WING_L", prio: 0, tpl: "ПОЖАР В КРЫЛЕ ЛЕВ",            col: COL.RED,    flash: true },
+        { id: "FIRE_WING_R", prio: 0, tpl: "ПОЖАР В КРЫЛЕ ПРАВ",           col: COL.RED,    flash: true },
+        { id: "FIRE_APU",    prio: 0, tpl: "ПОЖАР В ОТСЕКЕ ВСУ",           col: COL.RED,    flash: true },
+        { id: "CAB_DECOMP",  prio: 0, tpl: "ОПАСНАЯ РАЗГЕРМЕТИЗАЦ!",       col: COL.RED,    flash: true },
+        { id: "CAB_DP_MAX",  prio: 0, tpl: "ОПАСНЫЙ ПЕРЕПАД!",             col: COL.RED,    flash: true },
+
+        { h: "ГРАНИЧНІ РЕЖИМИ / ПЕРЕГРІВ  (пріоритет 1, жовтий)" },
+        { id: "THR_LOW",     prio: 1, tpl: "ДВ%d. ТЯГА МАЛА",              col: COL.YELLOW, flash: true,  eng: true },
+        { id: "POMPAZH",     prio: 1, tpl: "ДВ%d. ПОМПАЖ",                 col: COL.YELLOW, flash: true,  eng: true, need_run: true },
+        { id: "SZTR_TRIP",   prio: 1, tpl: "ДВ%d. СРАБОТАЛА СЗТР",         col: COL.YELLOW, flash: true,  eng: true },
+        { id: "N1_LIM",      prio: 1, tpl: "ДВ%d. ОБОРОТЫ РВ ПРЕДЕЛЬНЫЕ",  col: COL.YELLOW, flash: true,  eng: true },
+        { id: "N2_LIM",      prio: 1, tpl: "ДВ%d. ОБОРОТЫ РКВД ПРЕДЕЛЬНЫЕ",col: COL.YELLOW, flash: true,  eng: true },
+        { id: "TVG_START",   prio: 1, tpl: "ДВ%d. ТВГ ВЫСОКАЯ",            col: COL.YELLOW, flash: true,  eng: true },
+        { id: "TVG_RUN",     prio: 1, tpl: "ДВ%d. ТВГ ПРЕДЕЛЬНАЯ",         col: COL.YELLOW, flash: true,  eng: true },
+        { id: "FUEL_LOW",    prio: 1, tpl: "ДВ%d. ДАВЛЕНИЕ ТОПЛИВА МАЛО",  col: COL.YELLOW, flash: true,  eng: true },
+        { id: "OIL_LOW",     prio: 1, tpl: "ДВ%d. МАСЛО МАЛО ДАВЛ",        col: COL.YELLOW, flash: true,  eng: true, need_run: true },
+        { id: "VIB_RED",     prio: 1, tpl: "ДВ%d. ОПАСНАЯ ВИБРАЦИЯ",       col: COL.YELLOW, flash: true,  eng: true, need_run: true },
+        { id: "GG_OVHT",     prio: 1, tpl: "ДВ%d. ПЕРЕГРЕВ",               col: COL.YELLOW, flash: true,  eng: true },
+        { id: "MG_OVHT",     prio: 1, tpl: "ПЕРЕГРЕВ МГ",                  col: COL.YELLOW, flash: true },
+
+        { h: "ВІДМОВИ ТА ЗАСТЕРЕЖЕННЯ  (пріоритет 2, жовтий)" },
+        { id: "VIB_YEL",     prio: 2, tpl: "ДВ%d. ВИБРАЦИЯ ВЕЛИКА",        col: COL.YELLOW, flash: true,  eng: true, need_run: true },
+        { id: "TURB_COOL",   prio: 2, tpl: "ДВ%d ОХЛАЖД ТУРБ",             col: COL.YELLOW, flash: true,  eng: true },
+        { id: "RED_FAIL",    prio: 2, tpl: "ДВ%d. ОТКАЗ РЭД",              col: COL.YELLOW, flash: true,  eng: true },
+        { id: "BSKD_FAIL",   prio: 2, tpl: "ДВ%d. ОТКАЗ БСКД",             col: COL.YELLOW, flash: true,  eng: true },
+        { id: "SZTR_FAIL",   prio: 2, tpl: "ДВ%d. ОТКАЗ СЗТР",             col: COL.YELLOW, flash: true,  eng: true },
+        { id: "REO_OVHT",    prio: 2, tpl: "РЭО. ПЕРЕГРЕВ (НЕТ ОХЛ)",      col: COL.YELLOW, flash: true },
+        { id: "BSKD_MAIN",   prio: 2, tpl: "ДВ%d. ОТКАЗ БППД2 (РЕЗЕРВ)",   col: COL.YELLOW, flash: true,  eng: true },
+        { id: "BSKD_RES",    prio: 2, tpl: "ДВ%d. ОТКАЗ БППД3",            col: COL.YELLOW, flash: true,  eng: true },
+        { id: "OIL_CHIP",    prio: 2, tpl: "ДВ%d. СТРУЖКА В МАСЛЕ",        col: COL.YELLOW, flash: true,  eng: true },
+        { id: "OIL_QTY_LOW", prio: 2, tpl: "ДВ%d. МАСЛА МАЛО",             col: COL.YELLOW, flash: true,  eng: true },
+        { id: "OIL_QTY_HI",  prio: 2, tpl: "ДВ%d. ИЗБЫТОК МАСЛА",          col: COL.YELLOW, flash: false, eng: true, need_run: true },
+        { id: "FUEL_FLT",    prio: 2, tpl: "ДВ%d. ФИЛЬТР ТОПЛИВНЫЙ ЗАСОРЕН",col: COL.YELLOW, flash: true,  eng: true },
+        { id: "POS_VLV",     prio: 2, tpl: "ПОС ДВ%d. ЗАСЛОНКА ОТКАЗ",     col: COL.YELLOW, flash: true,  eng: true },
+        { id: "POS_PRS",     prio: 2, tpl: "ПОС ДВ%d. НЕТ ДАВЛЕНИЯ",       col: COL.YELLOW, flash: true,  eng: true },
+        { id: "POS_RID",     prio: 2, tpl: "ПОС ДВ%d. РИД ОТКАЗ",          col: COL.YELLOW, flash: true,  eng: true },
+        { id: "POS_RU",      prio: 2, tpl: "ПОС ДВ%d. РУ ОТКАЗ",           col: COL.YELLOW, flash: true,  eng: true },
+        { id: "CARGO_SMOKE", prio: 2, tpl: "ДЫМ В ГРУЗОВОЙ КАБИНЕ!",       col: COL.YELLOW, flash: true },
+
+        { h: "СИСТЕМА ЕЛЕКТРОПОСТАЧАННЯ СЭС  (пріоритет 2–3)" },
+        { id: "SES_GEN_FAIL", prio: 2, tpl: "СЭС ~ ГЕНЕРАТОР %d ОТКАЗ",          col: COL.YELLOW, flash: true,  eng: true },
+        { id: "SES_FREQ_BAD", prio: 2, tpl: "СЭС ~ ЧАСТОТА НЕ В НОРМ",          col: COL.YELLOW, flash: true },
+        { id: "SES_VU_FAIL",  prio: 2, tpl: "СЭС = ВУ%d ОТКАЗ",                  col: COL.YELLOW, flash: true,  eng: true },
+        { id: "SES_AC_TIE",   prio: 2, tpl: "СЭС~. ОБЪЕДИНЕНИЕ БОРТОВ",          col: COL.YELLOW, flash: true },
+        { id: "SES_DC_TIE",   prio: 2, tpl: "СЭС=. ОБЪЕДИНЕНИЕ БОРТОВ",          col: COL.YELLOW, flash: true },
+        { id: "SES_BAT_HEAT", prio: 2, tpl: "СЭС. ОТКАЗ ОБОГРЕВА БАТ",           col: COL.YELLOW, flash: true },
+        { id: "SES_PO750",    prio: 2, tpl: "СЭС~. РАБОТА ПО-750А",              col: COL.YELLOW, flash: true },
+        { id: "SES_36V_L",    prio: 2, tpl: "СЭС 36В. ОТКАЗ ЛЕВ БОРТ",           col: COL.YELLOW, flash: true },
+        { id: "SES_36V_R",    prio: 2, tpl: "СЭС 36В. ОТКАЗ ПРАВ БОРТ",          col: COL.YELLOW, flash: true },
+        { id: "SES_36V_RES",  prio: 2, tpl: "СЭС 36В. ПИТАНИЕ ОТ РЕЗЕРВА",       col: COL.YELLOW, flash: true },
+        { id: "SES_VU_OFF",   prio: 3, tpl: "СЭС = ВУ%d НЕ ВКЛЮЧЕНО",            col: COL.GREEN,  flash: false, eng: true },
+        { id: "SES_BAT_OFF",  prio: 3, tpl: "СЭС=. АККУМУЛЯТОР %d НЕ ПОДКЛЮЧЕН", col: COL.GREEN,  flash: false, eng: true },
+
+        { h: "ІНФОРМАЦІЙНІ  (пріоритет 3)" },
+        { id: "ZPV1_OPEN",   prio: 3, tpl: "ДВ%d ЗПВ ПС 1 ГР ОТКР",        col: COL.GREEN,  flash: false, eng: true },
+        { id: "RED_BCK",     prio: 3, tpl: "ДВ%d. РЭД НА РЕЗЕРВЕ",         col: COL.GREEN,  flash: true,  eng: true },
+        { id: "RZI_FAIL",    prio: 3, tpl: "РЗИ ОТКАЗ",                    col: COL.ORANGE, flash: false },
+        { id: "REZ_CHAN",    prio: 3, tpl: "КИСС. РЕЗЕРВНЫЙ КАНАЛ (БППД3-К)", col: COL.GREEN, flash: false },
+        { id: "START_RDY",   prio: 3, tpl: "ДВ%d ГОТОВНОСТЬ К ЗАПУСКУ",       col: COL.GREEN, flash: false, eng: true },
+        { id: "START_RUN",   prio: 3, tpl: "ДВ%d ИДЕТ ЗАПУСК ДВИГАТЕЛЯ",     col: COL.GREEN, flash: false, eng: true },
+        { id: "TEST_RED_OK", prio: 3, tpl: "ДВ%d. КОНТРОЛЬ РЭД НОРМА",       col: COL.GREEN, flash: false, eng: true },
+        { id: "TEST_BSKD_OK",prio: 3, tpl: "ДВ%d. КОНТРОЛЬ БСКД НОРМА",      col: COL.GREEN, flash: false, eng: true },
+        { id: "TEST_SZTR_1", prio: 3, tpl: "ДВ%d. СЗТР КАНАЛ 1 ИСПРАВЕН",    col: COL.GREEN, flash: false, eng: true },
+        { id: "TEST_SZTR_2", prio: 3, tpl: "ДВ%d. СЗТР КАНАЛ 2 ИСПРАВЕН",    col: COL.GREEN, flash: false, eng: true },
+        { id: "TEST_PPS_OK", prio: 3, tpl: "ДВ%d. КОНТРОЛЬ ППС НОРМА",       col: COL.GREEN, flash: false, eng: true },
+
+        { h: "РЕЖИМИ  (пріоритет 4, оранжевий)" },
+        { id: "GM_MODE",     prio: 4, tpl: "ДВ%d. ПЕРЕХОД НА ГМ",          col: COL.ORANGE, flash: false, eng: true },
+        { id: "GP_MODE",     prio: 4, tpl: "ДВ%d. ПЕРЕХОД НА ГП",          col: COL.ORANGE, flash: false, eng: true },
+      ];
+
+      const LIVE = {
+        FIRE_ENG:    { name: "custom/il76/fire/fire_eng_%d",         on: 1 },
+        FIRE_WING_L: { name: "custom/il76/fire/fire_wing_left",      on: 1 },
+        FIRE_WING_R: { name: "custom/il76/fire/fire_wing_right",     on: 1 },
+        FIRE_APU:    { name: "custom/il76/fire/fire_apu",            on: 1 },
+        THR_LOW:     { name: "custom/il76/test/ovr_thrust_%d",       on: 1 },
+        POMPAZH:     { name: "custom/il76/ps90/fail_pompazh_%d",     on: 1 },
+        SZTR_TRIP:   { name: "custom/il76/test/ovr_sztr_trip_%d",    on: 1 },
+        N1_LIM:      { name: "custom/il76/test/ovr_n1_lim_%d",       on: 1 },
+        N2_LIM:      { name: "custom/il76/test/ovr_n2_lim_%d",       on: 1 },
+        TVG_START:   { name: "custom/il76/test/ovr_tvg_start_%d",    on: 1 },
+        TVG_RUN:     { name: "custom/il76/test/ovr_tvg_run_%d",      on: 1 },
+        FUEL_LOW:    { name: "custom/il76/test/ovr_fuel_low_%d",     on: 1 },
+        OIL_LOW:     { name: "custom/il76/ps90/fail_oil_press_%d",   on: 1 },
+        VIB_RED:     { name: "custom/il76/ps90/vib_fault_level_%d",  f: true, on: 3.0,  group: "VIB" },
+        GG_OVHT:     { name: "custom/il76/ps90/gasgen_overheat_%d",  on: 1 },
+        MG_OVHT:     { name: "custom/il76/fire/overheat_mg",         on: 1 },
+        VIB_YEL:     { name: "custom/il76/ps90/vib_fault_level_%d",  f: true, on: 1.5,  group: "VIB" },
+        RED_FAIL:    { name: "custom/il76/ps90/fail_red_%d",         on: 1 },
+        BSKD_FAIL:   { name: "custom/il76/ps90/fail_bskd_%d",        on: 1 },
+        SZTR_FAIL:   { name: "custom/il76/ps90/fail_sztr_%d",        on: 1 },
+        REO_OVHT:    { name: "custom/il76/test/ovr_reo_ovht",        on: 1 },
+        BSKD_MAIN:   { name: "custom/il76/bskd/fail_main_chan_%d",   on: 1 },
+        BSKD_RES:    { name: "custom/il76/bskd/fail_res_chan_%d",    on: 1 },
+        OIL_CHIP:    { name: "custom/il76/ps90/oil_chip_%d",         on: 1 },
+        OIL_QTY_LOW: { name: "custom/il76/ps90/oil_qty_liters_%d",   f: true, on: 3.0,  group: "OILQ" },
+        OIL_QTY_HI:  { name: "custom/il76/ps90/oil_qty_liters_%d",   f: true, on: 35.0, group: "OILQ" },
+        FUEL_FLT:    { name: "custom/il76/ps90/fuel_filter_clog_%d", on: 1 },
+        POS_VLV:     { name: "custom/il76/ps90/pos_valve_fail_%d",   on: 1 },
+        POS_PRS:     { name: "custom/il76/ps90/pos_press_low_%d",    on: 1 },
+        POS_RID:     { name: "custom/il76/ps90/pos_rid_fail_%d",     on: 1 },
+        POS_RU:      { name: "custom/il76/ps90/pos_ru_fail_%d",      on: 1 },
+        ZPV1_OPEN:   { name: "custom/il76/ps90/fail_zpv1_open_%d",   on: 1 },
+        RED_BCK:     { name: "custom/il76/ps90/red_on_backup_%d",    on: 1 },
+        RZI_FAIL:    { name: "custom/il76/ps90/rzi_fail",            on: 1 },
+        REZ_CHAN:    { name: "custom/il76/pui/rezerv_channel",       on: 1, nocreate: true },
+        TEST_RED_OK: { name: "custom/il76/bskd_panel/test_msg_red_%d",  on: 1 },
+        TEST_BSKD_OK:{ name: "custom/il76/bskd_panel/test_msg_bskd_%d", on: 1 },
+        TEST_SZTR_1: { name: "custom/il76/bskd_panel/test_msg_sztr_%d", on: 1, group: "SZTR_T" },
+        TEST_SZTR_2: { name: "custom/il76/bskd_panel/test_msg_sztr_%d", on: 2, group: "SZTR_T" },
+        TEST_PPS_OK: { name: "custom/il76/test/ovr_pps_ok_%d",          on: 1 },
+        GM_MODE:     { name: "custom/il76/ps90/sw_gm_mode_%d",       on: 1 },
+        GP_MODE:     { name: "custom/il76/ps90/sw_gp_mode_%d",       on: 1 },
+        SES_GEN_FAIL:{ name: "custom/il76/elec/fail_gen_%d",         on: 1, nocreate: true },
+        SES_FREQ_BAD:{ name: "custom/il76/elec/fail_freq",           on: 1, nocreate: true },
+        SES_VU_FAIL: { name: "custom/il76/elec/fail_vu_%d",          on: 1, nocreate: true },
+        SES_AC_TIE:  { name: "custom/il76/elec/test_ac_tie",         on: 1, nocreate: true },
+        SES_DC_TIE:  { name: "custom/il76/elec/test_dc_tie",         on: 1, nocreate: true },
+        SES_BAT_HEAT:{ name: "custom/il76/elec/fail_bat_heat",       on: 1, nocreate: true },
+        SES_PO750:   { name: "custom/il76/elec/test_po750",          on: 1, nocreate: true },
+        SES_36V_L:   { name: "custom/il76/elec/fail_36v_l",          on: 1, nocreate: true },
+        SES_36V_R:   { name: "custom/il76/elec/fail_36v_r",          on: 1, nocreate: true },
+        SES_36V_RES: { name: "custom/il76/elec/test_36v_res",        on: 1, nocreate: true },
+        SES_VU_OFF:  { name: "cust/pnv/button/vu%d",                 f: true, on: 0, nocreate: true },
+        SES_BAT_OFF: { name: "custom/il76/elec/test_akb_off_%d",     on: 1, nocreate: true },
+      };
+
+      const FLAT = [];
+      const BY_ID = new Map();
+      for (const it of CATALOG) {
+        if (it.id) {
+          it.live = LIVE[it.id] || null;
+          FLAT.push(it);
+          BY_ID.set(it.id, it);
+        }
+      }
+
+      // === СПІЛЬНИЙ СТАН СИМУЛЯТОРА ===
+      let sim_dc_power = true;
+      let sim_eng_running = false; // false => N2=0% (зупинені), true => N2=65%
+      let activeView = window.innerWidth >= 1024 ? "both" : "bskd";
+
+      // Стан Галереї
+      let cur_eng = 1;
+      let active = [];
+      let active_keys = new Set();
+      let acked = new Set();
+      let seq_counter = 0;
+      let mock_scroll = 0;
+      let demo_on = false;
+      let demo_idx = 0;
+      let demo_timer = null;
+      let live_mode = false;
+      let live_ovr = new Map();
+      let live_status = "Режим МАКЕТ: датарефи не змінюються.";
+      let pulse_on = true;
+
+      // Стан Щитка БСКД/РЭД (ps90_bskd_panel.lua)
+      function makePanelState() {
+        return {
+          lid_open: 0,
+          lamp_ctrl_on: 0,
+          sw_bskd_test:  [0, 0, 0, 0],
+          sw_red_test:   [0, 0, 0, 0],
+          lamp_red_ok:   [0, 0, 0, 0],
+          sw_red_backup: [0, 0, 0, 0],
+          sw_sztr_test:  [0, 0, 0, 0], // +1=К1, 0=нейтр, -1=К2
+          sw_bskd_pwr:   [1, 1, 1, 1],
+          sw_sztr_pwr:   [1, 1, 1, 1],
+          btn_surge_test:[0, 0, 0, 0], // +1=КОНТРОЛЬ, 0=нейтр, -1=СБРОС
+          sw_cool_reo:   1,
+          sw_stby_rpm:   1,
+          sw_stby_tvg:   1,
+          sw_red_pwr:    [1, 1, 1, 1],
+          // Таймери
+          bskd_test_t:   [0, 0, 0, 0],
+          red_test_t:    [0, 0, 0, 0],
+          bskd_msg_hold: [0, 0, 0, 0],
+          red_msg_hold:  [0, 0, 0, 0],
+          sztr_msg_hold: [0, 0, 0, 0],
+          sztr_last_ch:  [1, 1, 1, 1],
+          pps_msg_hold:  [0, 0, 0, 0],
+          prev_msg_bskd: [0, 0, 0, 0],
+          prev_msg_red:  [0, 0, 0, 0],
+          prev_msg_sztr: [0, 0, 0, 0],
+          prev_msg_pps:  [0, 0, 0, 0],
+        };
+      }
+      let P = makePanelState();
+      let heldControl = null;
+
+      // DOM
+      const tabGallery = document.getElementById("tab-gallery");
+      const tabBskd = document.getElementById("tab-bskd");
+      const tabBoth = document.getElementById("tab-both");
+      const galleryPane = document.getElementById("gallery-pane");
+      const bskdPane = document.getElementById("bskd-pane");
+      const miniIm1Wrap = document.getElementById("mini-im1-wrap");
+      const miniIm1List = document.getElementById("mini-im1-list");
+      const btnMiniAck = document.getElementById("btn-mini-ack");
+
+      const btnSimDc = document.getElementById("btn-sim-dc");
+      const btnSimEng = document.getElementById("btn-sim-eng");
+      const btnReopen = document.getElementById("btn-reopen");
+      const btnResetAll = document.getElementById("btn-reset-all");
+
+      const saslWindow = document.getElementById("sasl-window");
+      const closedBanner = document.getElementById("closed-banner");
+      const im1Screen = document.getElementById("im1-screen");
+      const catList = document.getElementById("cat-list");
+      const catCounter = document.getElementById("cat-counter");
+      const liveStatusEl = document.getElementById("live-status");
+      const hintLiveCountEl = document.getElementById("hint-live-count");
+      const activeCountEl = document.getElementById("active-count");
+      const drefCountEl = document.getElementById("dref-count");
+      const drefListEl = document.getElementById("dref-list");
+
+      const btnClose = document.getElementById("btn-close");
+      const btnReopenCenter = document.getElementById("btn-reopen-center");
+      const btnMockUp = document.getElementById("btn-mock-up");
+      const btnMockDn = document.getElementById("btn-mock-dn");
+      const btnCatUp = document.getElementById("btn-cat-up");
+      const btnCatDn = document.getElementById("btn-cat-dn");
+      const btnAck = document.getElementById("btn-ack");
+      const btnClear = document.getElementById("btn-clear");
+      const btnDemo = document.getElementById("btn-demo");
+      const btnLive = document.getElementById("btn-live");
+      const engButtons = document.querySelectorAll(".eng-btn");
+
+      const annCtrlOn = document.getElementById("ann-ctrl-on");
+      const testProgressBar = document.getElementById("test-progress-bar");
+      const testProgressFill = document.getElementById("test-progress-fill");
+      const btnBskdAll = document.getElementById("btn-bskd-all");
+      const btnBskdClose = document.getElementById("btn-bskd-close");
+      const bskdLid = document.getElementById("bskd-lid");
+      const btnLidClose = document.getElementById("btn-lid-close");
+
+      function msg_text(it, eng) {
+        return it.eng ? it.tpl.replace("%d", String(eng)) : it.tpl;
+      }
+      function live_name(it, eng) {
+        return it.eng ? it.live.name.replace("%d", String(eng)) : it.live.name;
+      }
+      function key_of(it, eng) {
+        return it.eng ? `${it.id}_${eng}` : it.id;
+      }
+
+      function set_mock_scroll(val) {
+        const max_s = Math.max(0, active.length - MAX_MSG_LINES);
+        mock_scroll = Math.max(0, Math.min(max_s, val));
+      }
+      function sort_active() {
+        active.sort((a, b) => (a.prio !== b.prio ? a.prio - b.prio : a.seq - b.seq));
+        set_mock_scroll(mock_scroll);
+      }
+      function add_item(it, eng) {
+        const k = key_of(it, eng);
+        if (active_keys.has(k)) return;
+        seq_counter += 1;
+        active_keys.add(k);
+        active.push({
+          key: k, prio: it.prio, seq: seq_counter,
+          text: msg_text(it, eng), col: it.col, flash: it.flash, it, eng,
+        });
+        sort_active();
+      }
+      function remove_key(k) {
+        if (!active_keys.has(k)) return;
+        active = active.filter((m) => m.key !== k);
+        active_keys.delete(k);
+        acked.delete(k);
+        sort_active();
+      }
+      function live_apply(it, eng, on) {
+        if (!live_mode) return;
+        if (!it.live) {
+          live_status = "МАКЕТ (без датарефа): " + msg_text(it, eng);
+          return;
+        }
+        const lv = it.live;
+        const name = live_name(it, eng);
+        if (on) {
+          live_ovr.set(name, lv.on);
+          live_status = `ЗАПИС: ${name} = ${lv.on}`;
+        } else if (live_ovr.has(name)) {
+          live_ovr.delete(name);
+          live_status = `ПОВЕРНУТО: ${name} = ${lv.on === 0 ? 1 : 0}`;
+        }
+      }
+      function setPanelMsg(id, eng, on, drefName, drefVal) {
+        const it = BY_ID.get(id);
+        if (!it) return;
+        const k = key_of(it, eng);
+        if (on) {
+          add_item(it, eng);
+          if (drefName) live_ovr.set(drefName, drefVal);
+        } else {
+          remove_key(k);
+          if (drefName) live_ovr.delete(drefName);
+        }
+      }
+      function activate(it, eng) {
+        if (it.live && it.live.group) {
+          for (const other of FLAT) {
+            if (other !== it && other.live && other.live.group === it.live.group) {
+              const ok = key_of(other, eng);
+              if (active_keys.has(ok)) remove_key(ok);
+            }
+          }
+        }
+        add_item(it, eng);
+        live_apply(it, eng, true);
+      }
+      function deactivate(it, eng) {
+        remove_key(key_of(it, eng));
+        live_apply(it, eng, false);
+      }
+      function toggle_item(it) {
+        if (active_keys.has(key_of(it, cur_eng))) deactivate(it, cur_eng);
+        else activate(it, cur_eng);
+        renderAll();
+      }
+      function stopDemo() {
+        demo_on = false;
+        if (demo_timer) { clearInterval(demo_timer); demo_timer = null; }
+      }
+      function clear_all() {
+        live_ovr.clear();
+        active = [];
+        active_keys.clear();
+        acked.clear();
+        mock_scroll = 0;
+        live_status = live_mode
+          ? "ЖИВО: усі тестові значення відновлено; режим активний."
+          : "Режим МАКЕТ: датарефи не змінюються.";
+      }
+      function ack_all() {
+        for (const m of active) acked.add(m.key);
+      }
+
+      // === ВІДМОВИ, ЯКІ ЩИТОК ЧИТАЄ З ГАЛЕРЕЇ ===
+      function isRedFailed(idx)  { return active_keys.has(`RED_FAIL_${idx + 1}`); }
+      function isBskdFailed(idx) { return active_keys.has(`BSKD_FAIL_${idx + 1}`); }
+      function isSztrFailed(idx) { return active_keys.has(`SZTR_FAIL_${idx + 1}`); }
+
+      function isAllOperOn() {
+        for (let i = 0; i < 4; i++) {
+          if (P.sw_red_pwr[i] !== 1 || P.sw_bskd_pwr[i] !== 1 || P.sw_sztr_pwr[i] !== 1) return false;
+        }
+        return true;
+      }
+
+      // === ПОБУДОВА DOM ЩИТКА БСКД/РЭД ===
+      function makeToggleHTML(group, idx, label) {
+        return `
+          <div class="flex flex-col items-center">
+            ${label ? `<span class="text-[10px] font-bold text-white leading-none mb-0.5">${label}</span>` : ""}
+            <button type="button" data-group="${group}" data-idx="${idx}" class="toggle-btn">
+              <span class="toggle-base"><span class="toggle-inner"></span></span>
+              <span class="toggle-lever"></span>
+            </button>
+          </div>`;
+      }
+      function makeToggle3HTML(group, idx, label) {
+        return `
+          <div class="flex flex-col items-center">
+            <span class="text-[10px] font-bold text-white leading-none mb-0.5">${label}</span>
+            <button type="button" data-group="${group}" data-idx="${idx}" data-tri="1" class="toggle3-btn">
+              <span class="toggle3-base"><span class="toggle3-inner"><span class="toggle3-center-tip"></span></span></span>
+              <span class="toggle3-lever"></span>
+            </button>
+          </div>`;
+      }
+
+      function buildPanelDOM() {
+        const rows = [
+          ["row-bskd-test",  (i) => makeToggleHTML("sw_bskd_test", i, i + 1)],
+          ["row-red-test",   (i) => makeToggleHTML("sw_red_test", i, i + 1)],
+          ["row-lamps-ok",   (i) => `<div class="flex flex-col items-center"><span class="text-[10px] font-bold text-white leading-none mb-1">${i + 1}</span><div data-lamp="${i}" class="lamp-dot"></div></div>`],
+          ["row-red-backup", (i) => makeToggleHTML("sw_red_backup", i, i + 1)],
+          ["row-sztr-test",  (i) => makeToggle3HTML("sw_sztr_test", i, i + 1)],
+          ["row-bskd-pwr",   (i) => makeToggleHTML("sw_bskd_pwr", i, i + 1)],
+          ["row-sztr-pwr",   (i) => makeToggleHTML("sw_sztr_pwr", i, i + 1)],
+          ["row-surge-btn",  (i) => makeToggle3HTML("btn_surge_test", i, i + 1)],
+        ];
+        for (const [id, fn] of rows) {
+          document.getElementById(id).innerHTML = [0, 1, 2, 3].map(fn).join("");
+        }
+
+        document.getElementById("slot-cool-reo").innerHTML = makeToggleHTML("sw_cool_reo", 0, null);
+        document.getElementById("slot-stby-rpm").innerHTML = makeToggleHTML("sw_stby_rpm", 0, null);
+        document.getElementById("slot-stby-tvg").innerHTML = makeToggleHTML("sw_stby_tvg", 0, null);
+
+        let redPwrHtml = '<div class="guard-bar"></div>';
+        for (let i = 0; i < 4; i++) {
+          redPwrHtml += makeToggleHTML("sw_red_pwr", i, i + 1) + '<div class="guard-bar"></div>';
+        }
+        document.getElementById("row-red-pwr").innerHTML = redPwrHtml;
+      }
+
+      // === ЛОГІКА ПЕРЕМИКАЧІВ ЩИТКА ===
+      function syncPanelSideEffects(group, idx) {
+        const eng = idx + 1;
+        if (group === "sw_red_backup") {
+          setPanelMsg("RED_BCK", eng, P.sw_red_backup[idx] === 1, `custom/il76/bskd_panel/sw_red_backup_${eng}`, 1);
+        } else if (group === "sw_cool_reo") {
+          setPanelMsg("REO_OVHT", 1, sim_dc_power && P.sw_cool_reo === 0, "custom/il76/bskd_panel/sw_cool_reo", 0);
+        }
+      }
+
+      function attachPanelEvents() {
+        const holdGroups = new Set(["sw_bskd_test", "sw_red_test", "sw_sztr_test", "btn_surge_test"]);
+
+        bskdPane.addEventListener("pointerdown", (evt) => {
+          const btn = evt.target.closest("button[data-group]");
+          if (!btn) return;
+          const group = btn.dataset.group;
+          const idx = Number(btn.dataset.idx);
+
+          if (holdGroups.has(group)) {
+            evt.preventDefault();
+            releaseHeld();
+            let val = 1;
+            if (btn.dataset.tri === "1") {
+              const rect = btn.getBoundingClientRect();
+              val = (evt.clientY < rect.top + rect.height * 0.5) ? 1 : -1;
+            }
+            P[group][idx] = val;
+            heldControl = { group, idx };
+            renderPanel();
+          } else {
+            if (Array.isArray(P[group])) {
+              P[group][idx] = P[group][idx] === 1 ? 0 : 1;
+            } else {
+              P[group] = P[group] === 1 ? 0 : 1;
+            }
+            syncPanelSideEffects(group, idx);
+            renderAll();
+          }
+        });
+
+        window.addEventListener("pointerup", releaseHeld);
+        window.addEventListener("pointercancel", releaseHeld);
+      }
+
+      function releaseHeld() {
+        if (!heldControl) return;
+        P[heldControl.group][heldControl.idx] = 0;
+        heldControl = null;
+        renderPanel();
+      }
+
+      // === ТІК ЛОГІКИ ps90_bskd_panel.lua (100 мс) ===
+      function stepPanelLogic(dt) {
+        const pwr = sim_dc_power;
+        const eng_stopped = !sim_eng_running;
+        // 3-поз. тумблери СЗТР та ППС
+        let any_ctrl = false;
+        let maxProg = 0;
+        let dirty = false;
+
+        for (let i = 0; i < 4; i++) {
+          const eng = i + 1;
+          const red_pwr_on  = pwr && P.sw_red_pwr[i] === 1;
+          const bskd_pwr_on = pwr && P.sw_bskd_pwr[i] === 1;
+          const sztr_pwr_on = pwr && P.sw_sztr_pwr[i] === 1;
+
+          const red_failed  = isRedFailed(i);
+          const bskd_failed = isBskdFailed(i);
+          const sztr_failed = isSztrFailed(i);
+
+          // 1. Контроль БСКД
+          if (P.sw_bskd_test[i] === 1) any_ctrl = true;
+          if (P.sw_bskd_test[i] === 1 && bskd_pwr_on && !bskd_failed) {
+            P.bskd_test_t[i] += dt;
+            maxProg = Math.max(maxProg, Math.min(1, P.bskd_test_t[i] / BSKD_TEST_DELAY));
+            if (P.bskd_test_t[i] >= BSKD_TEST_DELAY) P.bskd_msg_hold[i] = MSG_HOLD_TIME;
+          } else {
+            P.bskd_test_t[i] = 0;
+            if (P.bskd_msg_hold[i] > 0) P.bskd_msg_hold[i] = Math.max(0, P.bskd_msg_hold[i] - dt);
+          }
+          const new_bskd_msg = (bskd_pwr_on && !bskd_failed && P.bskd_msg_hold[i] > 0) ? 1 : 0;
+          if (new_bskd_msg !== P.prev_msg_bskd[i]) {
+            P.prev_msg_bskd[i] = new_bskd_msg;
+            setPanelMsg("TEST_BSKD_OK", eng, new_bskd_msg === 1, `custom/il76/bskd_panel/test_msg_bskd_${eng}`, 1);
+            dirty = true;
+          }
+
+          // 2. Контроль РЭД
+          if (P.sw_red_test[i] === 1) any_ctrl = true;
+          let red_ok_now = 0;
+          if (P.sw_red_test[i] === 1 && red_pwr_on && eng_stopped && !red_failed) {
+            P.red_test_t[i] += dt;
+            maxProg = Math.max(maxProg, Math.min(1, P.red_test_t[i] / RED_TEST_DELAY));
+            if (P.red_test_t[i] >= RED_TEST_DELAY) {
+              red_ok_now = 1;
+              P.red_msg_hold[i] = MSG_HOLD_TIME;
+            }
+          } else {
+            P.red_test_t[i] = 0;
+            if (P.red_msg_hold[i] > 0) P.red_msg_hold[i] = Math.max(0, P.red_msg_hold[i] - dt);
+          }
+          if (P.lamp_red_ok[i] !== red_ok_now) {
+            P.lamp_red_ok[i] = red_ok_now;
+            dirty = true;
+          }
+          const new_red_msg = (red_pwr_on && !red_failed && P.red_msg_hold[i] > 0) ? 1 : 0;
+          if (new_red_msg !== P.prev_msg_red[i]) {
+            P.prev_msg_red[i] = new_red_msg;
+            setPanelMsg("TEST_RED_OK", eng, new_red_msg === 1, `custom/il76/bskd_panel/test_msg_red_${eng}`, 1);
+            dirty = true;
+          }
+
+          // 3. Контроль СЗТР (3-поз.: +1 вгору = КОНТРОЛЬ 1, -1 вниз = КОНТРОЛЬ 2)
+          const sztr_pos = P.sw_sztr_test[i];
+          if (sztr_pos !== 0) any_ctrl = true;
+          if (sztr_pos !== 0 && sztr_pwr_on && !sztr_failed) {
+            P.sztr_last_ch[i] = sztr_pos > 0 ? 1 : 2;
+            P.sztr_msg_hold[i] = MSG_HOLD_TIME;
+          } else if (P.sztr_msg_hold[i] > 0) {
+            P.sztr_msg_hold[i] = Math.max(0, P.sztr_msg_hold[i] - dt);
+          }
+          const new_sztr_msg = (sztr_pwr_on && !sztr_failed && P.sztr_msg_hold[i] > 0) ? P.sztr_last_ch[i] : 0;
+          if (new_sztr_msg !== P.prev_msg_sztr[i]) {
+            P.prev_msg_sztr[i] = new_sztr_msg;
+            setPanelMsg("TEST_SZTR_1", eng, new_sztr_msg === 1, `custom/il76/bskd_panel/test_msg_sztr_${eng}`, 1);
+            setPanelMsg("TEST_SZTR_2", eng, new_sztr_msg === 2, `custom/il76/bskd_panel/test_msg_sztr_${eng}`, 2);
+            dirty = true;
+          }
+
+          // 4. Протипомпажна система (3-поз.: +1 вгору = КОНТРОЛЬ ППС НОРМА, -1 вниз = СБРОС помпажу)
+          const pps_pos = P.btn_surge_test[i];
+          if (pps_pos !== 0) any_ctrl = true;
+          if (pps_pos > 0 && bskd_pwr_on && !bskd_failed) {
+            P.pps_msg_hold[i] = MSG_HOLD_TIME;
+          } else if (P.pps_msg_hold[i] > 0) {
+            P.pps_msg_hold[i] = Math.max(0, P.pps_msg_hold[i] - dt);
+          }
+          if (pps_pos < 0 && active_keys.has(`POMPAZH_${eng}`)) {
+            remove_key(`POMPAZH_${eng}`);
+            live_ovr.delete(`custom/il76/ps90/fail_pompazh_${eng}`);
+            dirty = true;
+          }
+          const new_pps_msg = (bskd_pwr_on && !bskd_failed && P.pps_msg_hold[i] > 0) ? 1 : 0;
+          if (new_pps_msg !== P.prev_msg_pps[i]) {
+            P.prev_msg_pps[i] = new_pps_msg;
+            setPanelMsg("TEST_PPS_OK", eng, new_pps_msg === 1, `custom/il76/test/ovr_pps_ok_${eng}`, 1);
+            dirty = true;
+          }
+        }
+
+        const newCtrl = (pwr && any_ctrl) ? 1 : 0;
+        if (P.lamp_ctrl_on !== newCtrl) {
+          P.lamp_ctrl_on = newCtrl;
+          dirty = true;
+        }
+
+        testProgressBar.style.opacity = maxProg > 0 ? "1" : "0";
+        testProgressFill.style.width = `${Math.round(maxProg * 100)}%`;
+
+        if (dirty) renderAll();
+      }
+
+      // === РЕНДЕРИНГ ===
+      function renderMockHTML(list, limit) {
+        if (list.length === 0) {
+          return '<div class="flex-1 flex items-center justify-center text-xs font-bold py-2" style="color: var(--hint);">ПОВІДОМЛЕНЬ НЕМАЄ</div>';
+        }
+        let html = "";
+        for (const msg of list.slice(0, limit)) {
+          const isFlashing = msg.flash && !acked.has(msg.key) && pulse_on;
+          const flashClass = isFlashing ? (msg.col.isRed ? "flash-red" : "flash-cyan") : "";
+          const sqColor = msg.col.isRed ? "var(--red)" : "var(--cyan)";
+          html += `
+            <div class="im1-row ${flashClass} flex items-center gap-2 px-1.5 py-0.5 text-xs sm:text-[13px] font-bold leading-tight">
+              <span class="inline-block w-1.5 h-1.5 shrink-0" style="background:${sqColor};"></span>
+              <span class="truncate" style="color:${msg.col.hex};">${msg.text}</span>
+            </div>`;
+        }
+        return html;
+      }
+
+      function renderMock() {
+        const max_ms = Math.max(0, active.length - MAX_MSG_LINES);
+        btnMockUp.style.color = mock_scroll > 0 ? "var(--cyan)" : "var(--barln)";
+        btnMockDn.style.color = mock_scroll < max_ms ? "var(--cyan)" : "var(--barln)";
+
+        const visible = active.slice(mock_scroll, mock_scroll + MAX_MSG_LINES);
+        let html = renderMockHTML(visible, MAX_MSG_LINES);
+        if (active.length > MAX_MSG_LINES) {
+          html = '<div class="absolute top-1 right-1.5 text-[10px] leading-none" style="color: var(--cyan);">▼</div>' + html;
+        }
+        im1Screen.innerHTML = html;
+
+        // Міні-ІМ1 над щитком (показує до 4 останніх/найважливіших рядків)
+        miniIm1List.innerHTML = renderMockHTML(active, 4);
+      }
+
+      function renderCatalog() {
+        const liveCount = FLAT.filter((x) => x.live).length;
+        catCounter.textContent = `КАТАЛОГ ТАБЛО (${FLAT.length} табло / ${liveCount} у режимі ЖИВО)`;
+        if (hintLiveCountEl) {
+          hintLiveCountEl.textContent = `• ${liveCount} із ${FLAT.length} табло підтримують ЖИВО → ІМ1/ІМ2/СЭС.`;
+        }
+
+        let html = "";
+        for (const it of CATALOG) {
+          if (it.h) {
+            html += `<div class="cat-hdr px-2.5 py-1.5 text-[11px] sm:text-xs font-bold sticky top-0 z-10">${it.h}</div>`;
+          } else {
+            const on = active_keys.has(key_of(it, cur_eng));
+            const textColor = on ? it.col.hex : it.col.dim;
+            const sqColor = on ? (it.col.isRed ? "var(--red)" : "var(--cyan)") : "#13526e";
+            const baseTag = it.live ? (it.need_run ? "ІМ1(ДВ)" : "ІМ1") : "МАКЕТ";
+            const tagText = `${baseTag}${it.flash ? " · БЛИМ" : ""} · П${it.prio}`;
+            const tagColor = it.live ? "var(--cyan)" : "var(--hint)";
+            html += `
+              <button type="button" data-id="${it.id}"
+                class="cat-item ${on ? "on" : ""} w-full text-left flex items-center justify-between gap-2 px-2.5 py-2 sm:py-1.5 hover:bg-slate-900/70 transition">
+                <span class="flex items-center gap-2 min-w-0">
+                  <span class="inline-block w-2 h-2 shrink-0" style="background:${sqColor};"></span>
+                  <span class="text-xs sm:text-[13px] font-bold truncate" style="color:${textColor};">${msg_text(it, cur_eng)}</span>
+                </span>
+                <span class="text-[10px] sm:text-[11px] shrink-0 font-semibold" style="color:${tagColor};">${tagText}</span>
+              </button>`;
+          }
+        }
+        catList.innerHTML = html;
+      }
+
+      function renderPanel() {
+        bskdLid.classList.toggle("is-open", P.lid_open === 1);
+        annCtrlOn.classList.toggle("lit", P.lamp_ctrl_on === 1);
+
+        const allOn = isAllOperOn();
+        const locked = allOn && sim_eng_running;
+        btnBskdAll.textContent = locked ? "БЛОК" : (allOn ? "ВЫКЛ" : "ВКЛ");
+        btnBskdAll.style.background = allOn ? "#4d5c66" : "#296142";
+        btnBskdAll.style.color = locked ? "#c96f78" : "#ffffff";
+
+        bskdPane.querySelectorAll("button[data-group]").forEach((btn) => {
+          const g = btn.dataset.group;
+          const idx = Number(btn.dataset.idx);
+          const val = Array.isArray(P[g]) ? P[g][idx] : P[g];
+          if (btn.classList.contains("toggle-btn")) {
+            btn.classList.toggle("is-on", val === 1);
+          } else if (btn.classList.contains("toggle3-btn")) {
+            btn.classList.toggle("pos-up", val > 0);
+            btn.classList.toggle("pos-dn", val < 0);
+          }
+        });
+
+        bskdPane.querySelectorAll("[data-lamp]").forEach((el) => {
+          const i = Number(el.dataset.lamp);
+          el.classList.toggle("lit", P.lamp_red_ok[i] === 1);
+        });
+      }
+
+      function renderControls() {
+        btnDemo.textContent = demo_on ? "СТОП ДЕМО" : "ДЕМО";
+        btnDemo.classList.toggle("active", demo_on);
+
+        btnLive.textContent = live_mode
+          ? "РЕЖИМ: ЖИВО -> ІМ1 (запис у датарефи)"
+          : "РЕЖИМ: МАКЕТ (датарефи не чіпаємо)";
+        btnLive.classList.toggle("active", live_mode);
+
+        engButtons.forEach((btn) => btn.classList.toggle("active", Number(btn.dataset.eng) === cur_eng));
+
+        liveStatusEl.textContent = live_status;
+        liveStatusEl.style.color = live_mode ? "var(--green)" : "var(--hint)";
+        activeCountEl.textContent = `Активних повідомлень: ${active.length}`;
+
+        btnSimDc.textContent = sim_dc_power ? "DC 27В: ВКЛ" : "DC 27В: ВИМК";
+        btnSimDc.className = sim_dc_power
+          ? "px-2.5 py-1.5 rounded border font-mono font-semibold bg-emerald-950/80 border-emerald-600 text-emerald-300"
+          : "px-2.5 py-1.5 rounded border font-mono font-semibold bg-red-950/80 border-red-700 text-red-300";
+
+        btnSimEng.textContent = sim_eng_running ? "ДВ: ПРАЦЮЮТЬ (N2=65%)" : "ДВ: ЗУПИНЕНІ (N2=0%)";
+        btnSimEng.className = sim_eng_running
+          ? "px-2.5 py-1.5 rounded border font-mono font-semibold bg-amber-950/80 border-amber-600 text-amber-300"
+          : "px-2.5 py-1.5 rounded border font-mono font-semibold bg-slate-800 border-slate-600 text-slate-200";
+
+        drefCountEl.textContent = `Активних оверрайдів: ${live_ovr.size}`;
+        if (live_ovr.size === 0) {
+          drefListEl.innerHTML = "<span>Немає активних записів у датарефи.</span>";
+        } else {
+          const chips = [];
+          for (const [name, val] of live_ovr.entries()) {
+            chips.push(`<span class="px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-700/60 text-emerald-300 break-all">${name} = ${val}</span>`);
+          }
+          drefListEl.innerHTML = chips.join("");
+        }
+      }
+
+      function applyView() {
+        const isGal = activeView === "gallery" || activeView === "both";
+        const isBskd = activeView === "bskd" || activeView === "both";
+        galleryPane.classList.toggle("hidden", !isGal);
+        bskdPane.classList.toggle("hidden", !isBskd);
+        miniIm1Wrap.classList.toggle("hidden", activeView === "both");
+
+        const setTab = (el, on) => {
+          el.classList.toggle("bg-cyan-700", on);
+          el.classList.toggle("text-white", on);
+          el.classList.toggle("text-slate-300", !on);
+        };
+        setTab(tabGallery, activeView === "gallery");
+        setTab(tabBskd, activeView === "bskd");
+        setTab(tabBoth, activeView === "both");
+      }
+
+      function renderAll() {
+        renderMock();
+        renderCatalog();
+        renderPanel();
+        renderControls();
+      }
+
+      // === ПОДІЇ ===
+      tabGallery.addEventListener("click", () => { activeView = "gallery"; applyView(); });
+      tabBskd.addEventListener("click", () => { activeView = "bskd"; applyView(); });
+      tabBoth.addEventListener("click", () => { activeView = "both"; applyView(); });
+
+      btnSimDc.addEventListener("click", () => {
+        sim_dc_power = !sim_dc_power;
+        syncPanelSideEffects("sw_cool_reo", 0);
+        renderAll();
+      });
+      btnSimEng.addEventListener("click", () => {
+        sim_eng_running = !sim_eng_running;
+        renderAll();
+      });
+
+      catList.addEventListener("click", (evt) => {
+        const btn = evt.target.closest("button[data-id]");
+        if (!btn) return;
+        const it = BY_ID.get(btn.dataset.id);
+        if (it) toggle_item(it);
+      });
+
+      btnMockUp.addEventListener("click", () => { set_mock_scroll(mock_scroll - 1); renderMock(); });
+      btnMockDn.addEventListener("click", () => { set_mock_scroll(mock_scroll + 1); renderMock(); });
+      btnCatUp.addEventListener("click", () => catList.scrollBy({ top: -120, behavior: "smooth" }));
+      btnCatDn.addEventListener("click", () => catList.scrollBy({ top: 120, behavior: "smooth" }));
+
+      btnAck.addEventListener("click", () => { ack_all(); renderMock(); });
+      btnMiniAck.addEventListener("click", () => { ack_all(); renderMock(); });
+
+      btnClear.addEventListener("click", () => {
+        stopDemo();
+        clear_all();
+        renderAll();
+      });
+
+      btnDemo.addEventListener("click", () => {
+        if (live_mode) {
+          live_status = "ДЕМО доступне лише в режимі МАКЕТ.";
+          renderControls();
+          return;
+        }
+        if (demo_on) {
+          stopDemo();
+          renderControls();
+        } else {
+          clear_all();
+          demo_idx = 0;
+          demo_on = true;
+          renderAll();
+          demo_timer = setInterval(() => {
+            if (!demo_on) return;
+            const it = FLAT[demo_idx];
+            if (!it) { stopDemo(); renderControls(); return; }
+            add_item(it, (demo_idx % 4) + 1);
+            demo_idx += 1;
+            renderAll();
+          }, 1000);
+        }
+      });
+
+      btnLive.addEventListener("click", () => {
+        live_mode = !live_mode;
+        if (live_mode) {
+          stopDemo();
+          clear_all();
+          live_status = "ЖИВО: записи йдуть у датарефи ps90_bskd_core.";
+        } else {
+          live_ovr.clear();
+          live_status = "Режим МАКЕТ: датарефи не змінюються.";
+        }
+        renderAll();
+      });
+
+      engButtons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          cur_eng = Number(btn.dataset.eng);
+          renderAll();
+        });
+      });
+
+
+
+      btnBskdAll.addEventListener("click", () => {
+        const allOn = isAllOperOn();
+        const target = allOn ? 0 : 1;
+        if (target === 0 && sim_eng_running) return;
+        for (let i = 0; i < 4; i++) {
+          P.sw_red_pwr[i] = target;
+          P.sw_bskd_pwr[i] = target;
+          P.sw_sztr_pwr[i] = target;
+        }
+        P.sw_cool_reo = target;
+        P.sw_stby_rpm = target;
+        P.sw_stby_tvg = target;
+        syncPanelSideEffects("sw_cool_reo", 0);
+        renderAll();
+      });
+
+      btnClose.addEventListener("click", () => {
+        stopDemo();
+        saslWindow.classList.add("hidden");
+        closedBanner.classList.remove("hidden");
+        btnReopen.classList.remove("hidden");
+      });
+      btnBskdClose.addEventListener("click", () => {
+        activeView = "gallery";
+        applyView();
+      });
+
+      bskdLid.addEventListener("click", () => {
+        P.lid_open = 1;
+        renderPanel();
+      });
+      btnLidClose.addEventListener("click", () => {
+        releaseHeld();
+        P.lid_open = 0;
+        renderPanel();
+      });
+      btnReopen.addEventListener("click", () => {
+        saslWindow.classList.remove("hidden");
+        closedBanner.classList.add("hidden");
+        btnReopen.classList.add("hidden");
+      });
+      btnReopenCenter.addEventListener("click", () => {
+        saslWindow.classList.remove("hidden");
+        closedBanner.classList.add("hidden");
+        btnReopen.classList.add("hidden");
+      });
+
+      btnResetAll.addEventListener("click", () => {
+        saslWindow.classList.remove("hidden");
+        closedBanner.classList.add("hidden");
+        btnReopen.classList.add("hidden");
+        stopDemo();
+        live_mode = false;
+        sim_dc_power = true;
+        sim_eng_running = false;
+        cur_eng = 1;
+        P = makePanelState();
+        clear_all();
+        catList.scrollTop = 0;
+        renderAll();
+      });
+
+      buildPanelDOM();
+      attachPanelEvents();
+      applyView();
+      renderAll();
+
+      setInterval(() => stepPanelLogic(0.1), 100);
+      setInterval(() => {
+        pulse_on = !pulse_on;
+        if (active.length > 0) renderMock();
+      }, 400);
+    })();
+  </script>
+</body>
+</html>
